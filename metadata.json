@@ -1,0 +1,6 @@
+{
+  "name": "Ironmaking Technology & Digital Solutions",
+  "description": "Smarter Ironmaking Through Engineering, Technology and Digital Innovation. Industrial platform for blast furnace operations, raw material preparation, plant optimization, and metallurgical software applications.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
