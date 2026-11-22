@@ -803,6 +803,7 @@ let S=null;try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
 if(!S||!S.cfgs){S={plant:null,cfgs:{},confirmed:{},done:{},att:[],cur:{},user:{name:'',id:''},site:{par:{},sop:{},ilv:{},docs:[],customTop:'',plant:''},set:{pass:70,crit:100,retrain:12}};
  try{const o=JSON.parse(localStorage.getItem('bfta.v1'));if(o&&o.cfg){S.cfgs.bf=o.cfg;S.done=o.done||{};S.att=(o.att||[]).map(a=>Object.assign({plant:'bf'},a));S.site=Object.assign(S.site,o.site||{});S.set=o.set||S.set;S.user.name=(o.user||{}).name||'';S.user.id=(o.user||{}).id||''}}catch(e){}}
 for(const p of PLANTS){S.cfgs[p.id]=Object.assign(DEFC(p.id),S.cfgs[p.id]||{})}
+S.sel=S.sel||{};for(const id in S.confirmed)if(!(S.sel[id]||[]).length)S.confirmed[id]=false;
 for(const k of ['par','sop','ilv'])S.site[k]=S.site[k]||{};S.site.docs=S.site.docs||[];S.cur=S.cur||{};S.confirmed=S.confirmed||{};
 const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -821,6 +822,9 @@ const fx=(x,d=2)=>isFinite(x)?(+x).toLocaleString('en-IN',{maximumFractionDigits
 let EX=null,LQ={},MSG='',CIN={};const VIEWERS=[];
 const areaOf=(id,a)=>PL[id].areas.find(x=>x.id===a);
 const doneKey=(id,a)=>id+':'+a;
+const selOf=id=>(S.sel[id]||[]).filter(a=>PL[id].areas.some(x=>x.id===a));
+const selAreas=id=>{const s=selOf(id);return PL[id].areas.filter(a=>s.includes(a.id))};
+const ready=id=>S.confirmed[id]&&selOf(id).length>0;
 
 /* ---------- shared html ---------- */
 const flowHTML=a=>'<div class="flow">'+a.map((s,i)=>(i?`<span class="fa" style="animation-delay:${i*.35}s" aria-hidden="true">→</span>`:'')+`<div class="fs" style="--d:${i*.35}s"><b>${esc(s[0])}</b><small>${esc(s[1]||'')}</small></div>`).join('')+'</div>';
@@ -834,7 +838,7 @@ function qHTML(q,ans,act,locked){return `<div class="q"><b>${esc(q.q)}</b> ${q.x
 
 /* ---------- home ---------- */
 function vHome(){return `<section class="band"><h1>Learning module</h1><p class="lead">Choose the plant you want to learn. Each plant has its own configuration, 3D animated models, in-depth theory, interlocks, limits, procedures, troubleshooting, inspection, calculators and examination — open to every trainee.</p>
- <div class="grid g3">${PLANTS.map(p=>{const d=p.areas.filter(a=>S.done[doneKey(p.id,a.id)]).length;return `<button class="pcard ${S.plant===p.id?'on':''}" data-act="plant" data-id="${p.id}"><canvas data-mini="${p.id}" aria-hidden="true"></canvas><b>${esc(p.n)}</b><small>${esc(p.d)}</small><span class="tag ${d?'ok':''}">${p.areas.length} areas · ${d} complete</span></button>`}).join('')}</div></section>`}
+ <div class="grid g3">${PLANTS.map(p=>{const sa=selAreas(p.id),d=sa.filter(a=>S.done[doneKey(p.id,a.id)]).length;return `<button class="pcard ${S.plant===p.id?'on':''}" data-act="plant" data-id="${p.id}"><canvas data-mini="${p.id}" aria-hidden="true"></canvas><b>${esc(p.n)}</b><small>${esc(p.d)}</small><span class="tag ${d?'ok':''}">${ready(p.id)?`${sa.length} of ${p.areas.length} areas selected · ${d} complete`:`${p.areas.length} areas · choose your areas`}</span></button>`}).join('')}</div></section>`}
 
 /* ---------- plant profile ---------- */
 function vSetup(){const p=P(),c=C();
@@ -843,18 +847,20 @@ function vSetup(){const p=P(),c=C();
  else cfgH=`<div class="card">${grp(p.cfg)}</div>`;
  return `<section class="band"><h1>${esc(p.n)} — installed configuration</h1><p class="lead">Select the equipment installed at your plant. Every lesson, 3D model, interlock, limit, procedure, troubleshooting item, calculator and question then follows this selection, so trainees never study equipment that is not installed.</p>
  <div class="grid g2"><div>${cfgH}</div><div><div class="card"><h3>3D model of this configuration</h3>${v3HTML('',380)}</div>
- <div class="card" style="margin-top:14px"><h3>Training areas</h3><div class="flow">${p.areas.map((a,i)=>`<div class="fs" style="--d:${i*.3}s"><b>${esc(a.n)}</b><small>${esc(a.d)}</small></div>`).join('')}</div>
- <button class="p" data-act="gen">Start learning ${esc(p.n.toLowerCase())}</button></div></div></div></section>`}
+ <div class="card" id="tareas" style="margin-top:14px"><h3>Choose your training areas</h3><p class="sm mut">Select one area or several. Training, practice and examination will then show only the areas you choose.</p>
+ <div class="row" style="margin-bottom:8px"><button class="g" data-act="tall">Select all</button><button class="g" data-act="tnone">Clear</button></div>
+ <div class="chips" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))">${p.areas.map(a=>`<label class="chip"><input type="checkbox" value="${a.id}" data-tarea="1" ${selOf(p.id).includes(a.id)?'checked':''}><span>${esc(a.n)}<small>${esc(a.d)}</small></span></label>`).join('')}</div>
+ ${selOf(p.id).length?`<div class="note" style="margin:10px 0">${selOf(p.id).length} area${selOf(p.id).length>1?'s':''} selected: ${esc(selAreas(p.id).map(a=>a.n).join(', '))}</div><button class="p" data-act="gen">Start learning ${esc(p.n.toLowerCase())}</button>`:'<p class="note" style="margin-top:10px">Select at least one training area — the Start learning button will appear.</p>'}</div></div></div></section>`}
 
 /* ---------- training ---------- */
 const TABS=[['tp','What · why · how'],['il','Interlocks'],['lim','Limits'],['pr','Procedures'],['ts','Troubleshooting'],['ins','Inspection'],['calc','Calculators'],['q','Quiz']];
-function vLearn(){const p=P(),id=p.id;let cur=S.cur[id]||'A:'+p.areas[0].id;
- if(cur.startsWith('L:')&&!LS.some(L=>'L:'+L.id===cur&&okL(L)))cur='A:'+p.areas[0].id;S.cur[id]=cur;
- const side=p.areas.map(a=>{const dk=S.done[doneKey(id,a.id)];const ls=id==='bf'?lessons(a.id):[];
+function vLearn(){const p=P(),id=p.id,SA=selAreas(id);let cur=S.cur[id]||'A:'+SA[0].id;
+ const okCur=cur.startsWith('L:')?LS.some(L=>'L:'+L.id===cur&&okL(L)&&SA.some(a=>a.id===L.a)):SA.some(a=>'A:'+a.id===cur);if(!okCur)cur='A:'+SA[0].id;S.cur[id]=cur;
+ const side=SA.map(a=>{const dk=S.done[doneKey(id,a.id)];const ls=id==='bf'?lessons(a.id):[];
   return `<div class="ar"><button class="an ${cur==='A:'+a.id?'on':''} ${dk?'dn':''}" data-act="area" data-id="${a.id}">${esc(a.n)}</button>${ls.map(L=>`<button class="ls ${cur==='L:'+L.id?'on':''} ${S.done[L.id]?'dn':''}" data-act="ls" data-id="${L.id}">${esc(L.id)} ${esc(V(L.t))}</button>`).join('')}</div>`}).join('');
  const body=cur.startsWith('L:')?lessonPage(LS.find(L=>'L:'+L.id===cur)):areaPage(areaOf(id,cur.slice(2)));
- const done=p.areas.filter(a=>S.done[doneKey(id,a.id)]).length;
- return `<section class="band"><div class="row" style="justify-content:space-between"><div><h1 style="font-size:34px">${esc(p.n)} training</h1><p class="mut sm" style="margin:0">${esc(profStr())} · ${done}/${p.areas.length} areas complete</p></div><a class="btn g" href="#setup" style="text-decoration:none">Change configuration</a></div>
+ const done=SA.filter(a=>S.done[doneKey(id,a.id)]).length;
+ return `<section class="band"><div class="row" style="justify-content:space-between"><div><h1 style="font-size:34px">${esc(p.n)} training</h1><p class="mut sm" style="margin:0">${esc(profStr())} · ${done}/${SA.length} selected areas complete</p></div><a class="btn g" href="#setup" style="text-decoration:none">Change areas / configuration</a></div>
  <div class="learn" style="margin-top:18px"><aside class="side" aria-label="Areas">${side}</aside><article id="lesson">${body}</article></div></section>`}
 function rowsOf(a,k,ai){return (a[k]||[]).filter(r=>ap(r[ai],C()))}
 function tabHTML(a,t){const id=pid(),site=S.site;
@@ -879,10 +885,10 @@ function areaPage(a){const id=pid(),t=S.atab||'tp',fl=(a.fl||[]).filter(f=>ap(f[
 function lessonPage(L){return v3HTML(L.a,300)+lessonHTML(L)}
 
 /* ---------- practice ---------- */
-function vPractice(){const p=P();const groups=p.areas.map(a=>[a,p.calc.map((c,k)=>[c,k]).filter(x=>x[0].a===a.id)]).filter(x=>x[1].length);
+function vPractice(){const p=P();const groups=selAreas(p.id).map(a=>[a,p.calc.map((c,k)=>[c,k]).filter(x=>x[0].a===a.id)]).filter(x=>x[1].length);
  return `<section class="band"><h1>${esc(p.n)} — practice calculators</h1><p class="lead">Change the input values; results update at once. Sample values are typical — replace them with your plant data.</p>
  ${groups.map(([a,cs])=>`<h2 style="margin-top:22px">${esc(a.n)}</h2>${calcCards(cs)}`).join('')}
- ${p.id==='bf'?bfPractice():''}</section>`}
+ ${p.id==='bf'&&selOf('bf').some(a=>['stock','chg','cool'].includes(a))?bfPractice():''}${groups.length?'':'<p class="mut">No calculators in your selected areas.</p>'}</section>`}
 
 /* ---------- exam ---------- */
 const CATW={th:['Theory',25],eq:['Equipment identification',15],sq:['Operating sequence',20],il:['Interlock knowledge',15],em:['Emergency handling',15]};
@@ -890,7 +896,7 @@ const pracItems=()=>{const b=['Equipment identification','Normal operating seque
 function vExam(){const p=P();if(EX&&EX.res&&EX.plant===p.id)return vResult();
  if(!EX||EX.plant!==p.id){return `<section class="band"><h1>${esc(p.n)} examination</h1><p class="lead">Questions come only from the installed configuration and the areas you select. Marks: theory 25, equipment identification 15, operating sequence 20, interlocks 15, emergency handling 15, practical demonstration 10. All critical-safety questions must be answered correctly.</p>
  <div class="card"><div class="grid g2"><div><label class="f" for="un">Trainee name</label><input type="text" id="un" data-u="name" value="${esc(S.user.name)}"></div><div><label class="f" for="ui">Employee ID</label><input type="text" id="ui" data-u="id" value="${esc(S.user.id)}"></div></div>
- <div class="lab" style="margin-top:12px">Areas in this examination</div><div class="chips">${p.areas.map(a=>chip('exa',a.id,true,a.n,GQ.filter(q=>q.p===p.id&&q.a===a.id&&okQ(q)).length+' questions','checkbox')).join('')}</div>
+ <div class="lab" style="margin-top:12px">Areas in this examination</div><div class="chips">${selAreas(p.id).map(a=>chip('exa',a.id,true,a.n,GQ.filter(q=>q.p===p.id&&q.a===a.id&&okQ(q)).length+' questions','checkbox')).join('')}</div>
  <p class="sm">Pass mark ${S.set.pass} % · critical safety ${S.set.crit} %</p><button class="p" data-act="exstart">Start examination</button></div></section>`}
  const qs=EX.qs.map(i=>GQ[i]);
  return `<section class="band"><h1>${esc(p.n)} examination</h1><p class="mut">${Object.keys(EX.ans).length} of ${qs.length} answered · ${esc(EX.name||'')}</p>${Object.keys(CATW).map(k=>{const g=qs.filter(q=>q.c===k);return g.length?`<h3>${CATW[k][0]} (${CATW[k][1]} marks)</h3>`+g.map(q=>qHTML(q,EX.ans[q.i],'ex')).join(''):''}).join('')}
@@ -910,8 +916,8 @@ function vResult(){const r=EX.res,qs=EX.qs.map(i=>GQ[i]);
 
 /* ---------- records ---------- */
 function vRecords(){const a=S.att;const sel=S.certI!=null&&a[S.certI]&&a[S.certI].pass?a[S.certI]:a.filter(x=>x.pass).slice(-1)[0];
- const prog=PLANTS.map(p=>{const d=p.areas.filter(x=>S.done[doneKey(p.id,x.id)]).length;return `<div class="row sm" style="margin:6px 0"><span style="width:210px">${esc(p.n)}</span><div class="bar" style="flex:1"><i style="width:${d/p.areas.length*100}%"></i></div><span style="width:50px;text-align:right">${d}/${p.areas.length}</span></div>`}).join('');
- return `<section class="band"><h1>Progress and competency records</h1><div class="grid g2"><div class="card"><h3>Areas completed by plant</h3>${prog}</div>
+ const prog=PLANTS.filter(p=>ready(p.id)).map(p=>{const sa=selAreas(p.id),d=sa.filter(x=>S.done[doneKey(p.id,x.id)]).length;return `<div class="row sm" style="margin:6px 0"><span style="width:210px">${esc(p.n)}</span><div class="bar" style="flex:1"><i style="width:${d/sa.length*100}%"></i></div><span style="width:50px;text-align:right">${d}/${sa.length}</span></div>`}).join('')||'<p class="mut">No plant started yet.</p>';
+ return `<section class="band"><h1>Progress and competency records</h1><div class="grid g2"><div class="card"><h3>Selected areas completed</h3>${prog}</div>
  <div class="card"><h3>Certificate</h3>${sel?certHTML(sel):'<p class="mut">No passed examination yet.</p>'}</div></div>
  <div class="card" style="margin-top:14px"><h3>Examination record</h3>${a.length?`<table class="stack"><thead><tr><th>Date</th><th>Trainee</th><th>Plant</th><th>Configuration</th><th class="r">Score</th><th>Critical</th><th>Result</th><th>Valid until</th></tr></thead><tbody>${a.map((x,i)=>[x,i]).reverse().map(([x,i])=>`<tr><td>${x.date}</td><td>${esc(x.name)} ${esc(x.id)}</td><td>${esc((PL[x.plant]||PL.bf).n)}</td><td>${esc(x.prof)}</td><td class="r">${fx(x.score,1)} %</td><td>${x.crOk}/${x.crN}</td><td>${x.pass?`<button class="g" data-act="cert" data-i="${i}">Pass — certificate</button>`:'<span class="tag w">Fail</span>'}</td><td>${esc(x.due)}</td></tr>`).join('')}</tbody></table>`:'<p class="mut">No examinations recorded on this device.</p>'}
  <p class="sm mut">Records are kept on this device. Use Administrator → Export to keep a copy.</p></div></section>`}
@@ -963,15 +969,17 @@ function vAdvice(){const tips=[
 /* ---------- router & events ---------- */
 const VIEWS={home:vHome,setup:vSetup,learn:vLearn,practice:vPractice,exam:vExam,records:vRecords,admin:vAdmin,advice:vAdvice};
 const main=document.getElementById('main');
-function render(keep){let v=(location.hash||'').slice(1);if(!VIEWS[v])v='home';if(v!=='home'&&v!=='records'&&v!=='advice'&&!S.plant)v='home';
+function render(keep){let v=(location.hash||'').slice(1);if(!VIEWS[v])v='home';if(v!=='home'&&v!=='records'&&v!=='advice'&&!S.plant)v='home';if(['learn','practice','exam'].includes(v)&&S.plant&&!ready(S.plant)){v='setup';history.replaceState(null,'','#setup')}
  document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+v));
  const pc=document.getElementById('pchip');pc.textContent=S.plant?PL[S.plant].n:'No plant selected';
  stopViewers();const y=window.scrollY;main.innerHTML=VIEWS[v]();initViewers();calcAll();if(v==='practice'&&pid()==='bf'){calc();mx();hl()}if(keep)window.scrollTo(0,y)}
 window.addEventListener('hashchange',()=>{render();window.scrollTo(0,0)});
 const copy=(t,btn)=>{if(window.AndroidBridge){try{AndroidBridge.share(t);btn.textContent='Shared';return}catch(e){}}try{navigator.clipboard.writeText(t).then(()=>{btn.textContent='Copied'},()=>{btn.textContent='Select and copy manually'})}catch(e){btn.textContent='Select and copy manually'}};
 const ACT={
- plant:t=>{S.plant=t.dataset.id;save();location.hash=S.confirmed[S.plant]?'learn':'setup'},
- gen:()=>{S.confirmed[pid()]=true;save();location.hash='learn'},
+ plant:t=>{S.plant=t.dataset.id;save();location.hash=ready(S.plant)?'learn':'setup'},
+ gen:()=>{if(!selOf(pid()).length)return;S.confirmed[pid()]=true;const SA=selOf(pid());S.cur[pid()]='A:'+SA[0];save();location.hash='learn'},
+ tall:()=>{S.sel[pid()]=P().areas.map(a=>a.id);save();render(1);document.getElementById('tareas').scrollIntoView({block:'nearest'})},
+ tnone:()=>{S.sel[pid()]=[];S.confirmed[pid()]=false;save();render(1);document.getElementById('tareas').scrollIntoView({block:'nearest'})},
  area:t=>{S.cur[pid()]='A:'+t.dataset.id;save();render();document.getElementById('lesson').scrollIntoView({block:'start'})},
  ls:t=>{S.cur[pid()]='L:'+t.dataset.id;save();render();document.getElementById('lesson').scrollIntoView({block:'start'})},
  atab:t=>{S.atab=t.dataset.id;const a=areaOf(pid(),S.cur[pid()].slice(2));document.getElementById('atab').innerHTML=tabHTML(a,S.atab);document.querySelectorAll('[data-act=atab]').forEach(b=>b.className=b.dataset.id===S.atab?'p':'g');calcAll()},
@@ -999,6 +1007,7 @@ ACT.v3play=t=>vv(t).toggle();
 document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(t&&ACT[t.dataset.act]){e.preventDefault();ACT[t.dataset.act](t)}});
 const adKey=()=>{const s=document.getElementById('adl').value;return s.startsWith('A:')?pid()+'|'+s.slice(2):s.slice(2)};
 document.addEventListener('change',e=>{const t=e.target,d=t.dataset;
+ if(d.tarea){const s=new Set(selOf(pid()));t.checked?s.add(t.value):s.delete(t.value);S.sel[pid()]=P().areas.map(a=>a.id).filter(a=>s.has(a));if(!s.size)S.confirmed[pid()]=false;save();render(1);document.getElementById('tareas').scrollIntoView({block:'nearest'});return}
  if(d.cfg){const k=d.cfg;if(k==='exa'||/^ck\d/.test(k))return;if(/^pr\d/.test(k)){EX.pr[+k.slice(2)]=t.checked;return}S.cfgs[pid()][k]=t.value;save();render(1);return}
  if(d.act2==='adl'){S.adL=t.value;save();render(1);return}
  if(d.pars){(S.site.par[d.pars]=S.site.par[d.pars]||{}).s=t.value;save();return}
