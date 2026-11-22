@@ -1,6 +1,6 @@
-# BF Training Academy — Android app (test build)
+# NK Plant Training Academy — Android app (test build)
 
-Offline Android app (WebView) of the Blast Furnace Training Academy by Niteen Kumar (MBF).
+Offline Android app (WebView) covering blast furnace, sinter, coke oven, pellet, lime calcination and oxygen plants, with 3D animated models, by Niteen Kumar (MBF).
 
 - App content: `app/src/main/assets/index.html`
 - Every push to branch `bf-training-academy-apk` builds the APK on GitHub Actions and publishes it under **Releases** as a pre-release.

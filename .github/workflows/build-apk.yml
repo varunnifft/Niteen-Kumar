@@ -31,7 +31,7 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" | tee out/build-log.txt
           ls "$ANDROID_HOME/platforms" "$ANDROID_HOME/build-tools" 2>&1 | tee -a out/build-log.txt
           gradle :app:assembleRelease -PrunNumber=${{ github.run_number }} --no-daemon --stacktrace 2>&1 | tee -a out/build-log.txt
-          cp app/build/outputs/apk/release/app-release.apk out/BF-Training-Academy-v1.0.${{ github.run_number }}.apk
+          cp app/build/outputs/apk/release/app-release.apk out/NK-Training-Academy-v1.0.${{ github.run_number }}.apk
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -43,11 +43,11 @@ jobs:
         if: always()
         with:
           tag_name: bf-training-academy-v1.0.${{ github.run_number }}
-          name: BF Training Academy v1.0.${{ github.run_number }} (test build)
+          name: NK Training Academy v1.0.${{ github.run_number }} (test build)
           target_commitish: ${{ github.sha }}
           prerelease: true
           body: |
-            Test build of the Blast Furnace Training Academy Android app.
+            Test build of the NK Plant Training Academy (blast furnace, sinter, coke oven, pellet, lime, oxygen plants).
             Download the .apk below on your phone and install it (allow "Install unknown apps" for your browser).
             Signed with a test key — not for Play Store. build-log.txt is the build output.
           files: out/*
