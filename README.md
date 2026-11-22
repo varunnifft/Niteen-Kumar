@@ -1,4 +1,4 @@
-# NK Plant Training Academy — Android app (test build)
+# Learning Module — Android app (test build)
 
 Offline Android app (WebView) covering blast furnace, sinter, coke oven, pellet, lime calcination and oxygen plants, with 3D animated models, by Niteen Kumar (MBF).
 
