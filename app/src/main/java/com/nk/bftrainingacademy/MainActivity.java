@@ -98,11 +98,15 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack();
-        } else {
-            super.onBackPressed();
-        }
+        webView.evaluateJavascript("(window.appBack && window.appBack()) ? '1' : '0'", value -> {
+            if (value == null || !value.contains("1")) {
+                exitApp();
+            }
+        });
+    }
+
+    private void exitApp() {
+        super.onBackPressed();
     }
 
     private class Bridge {
