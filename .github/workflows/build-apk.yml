@@ -12,33 +12,35 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
-
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: '8.9'
 
       - name: Build APK
-        run: gradle :app:assembleRelease -PrunNumber=${{ github.run_number }} --no-daemon
-
-      - name: Rename APK
+        id: build
         run: |
+          set -o pipefail
           mkdir -p out
+          echo "ANDROID_HOME=$ANDROID_HOME ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" | tee out/build-log.txt
+          ls "$ANDROID_HOME/platforms" "$ANDROID_HOME/build-tools" 2>&1 | tee -a out/build-log.txt
+          gradle :app:assembleRelease -PrunNumber=${{ github.run_number }} --no-daemon --stacktrace 2>&1 | tee -a out/build-log.txt
           cp app/build/outputs/apk/release/app-release.apk out/BF-Training-Academy-v1.0.${{ github.run_number }}.apk
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: BF-Training-Academy-apk
-          path: out/*.apk
+          name: BF-Training-Academy-build
+          path: out/*
 
       - uses: softprops/action-gh-release@v2
+        if: always()
         with:
           tag_name: bf-training-academy-v1.0.${{ github.run_number }}
           name: BF Training Academy v1.0.${{ github.run_number }} (test build)
@@ -47,5 +49,5 @@ jobs:
           body: |
             Test build of the Blast Furnace Training Academy Android app.
             Download the .apk below on your phone and install it (allow "Install unknown apps" for your browser).
-            Signed with a test key — not for Play Store.
-          files: out/*.apk
+            Signed with a test key — not for Play Store. build-log.txt is the build output.
+          files: out/*
